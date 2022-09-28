@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import io from "socket.io-client";
 import styles from '../styles/Home.module.css'
 import fs from "fs-extra"
+import { Socket } from 'socket.io';
 
 export const getStaticProps: GetStaticProps = async (context) => {
   const content = await fs.readFile("./words/English.json", "utf-8");
@@ -22,6 +23,7 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
   const [username, setUsername] = useState("");
   const [chosenUsername, setChosenUsername] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const socketRef = useRef<any>(null);
   const colour = useRef("black");
   const [width, setWidth] = useState(2);
   const prevX = useRef(0);
@@ -29,7 +31,6 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
   const prevY = useRef(0);
   const currY = useRef(0);
   const flag = useRef(false);
-  let socket;
 
   useEffect(() => {
     if (!chosenUsername)
@@ -74,7 +75,7 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
 
   const socketInitializer = async () => {
     await fetch("/api/socket");
-    socket = io();
+    socketRef.current = io();
   };
 
   const chooseColor = (color: string) => {
