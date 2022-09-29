@@ -1,5 +1,5 @@
 .main {
-  min-height: 100vh;
+  /*min-height: 100vh;*/
   /*padding: 4rem 0;*/
   /*flex: 1;*/
   /*display: flex;
@@ -17,7 +17,19 @@
 }
 
 .usersList {
-  min-width: 200px;
+  width: 200px;
+  height: 750px;
+  overflow-y: auto;
+}
+
+.drawing {
+  width: 840px;
+}
+
+.chat {
+  width: 200px;
+  height: 750px;
+  overflow: hidden;
 }
 
 .game {

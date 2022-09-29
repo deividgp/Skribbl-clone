@@ -2,11 +2,12 @@ import { Button, FormElement, getCssText, Input, Text } from '@nextui-org/react'
 import type { NextPage, GetStaticProps, InferGetStaticPropsType } from 'next'
 import Head from 'next/head'
 import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
+import { MutableRefObject, useEffect, useRef, useState } from 'react'
 import io from "socket.io-client";
 import styles from '../styles/Home.module.css'
 import fs from "fs-extra"
 import { Socket } from 'socket.io';
+import Countdown from 'react-countdown';
 
 export const getStaticProps: GetStaticProps = async (context) => {
   const content = await fs.readFile("./words/English.json", "utf-8");
@@ -20,10 +21,14 @@ export const getStaticProps: GetStaticProps = async (context) => {
 };
 
 const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps>) => {
+  const bottomRef = useRef<HTMLDivElement>(null);
   const [username, setUsername] = useState("");
   const [chosenUsername, setChosenUsername] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [messages, setMessages] = useState([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const socketRef = useRef<any>(null);
+  const countdownRef = useRef<Countdown>(null);
   const colour = useRef("black");
   const [width, setWidth] = useState(2);
   const prevX = useRef(0);
@@ -31,6 +36,14 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
   const prevY = useRef(0);
   const currY = useRef(0);
   const flag = useRef(false);
+
+  useEffect(() => {
+    socketInitializer();
+  }, [])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+  }, [messages])
 
   useEffect(() => {
     if (!chosenUsername)
@@ -67,15 +80,26 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
     findxy('out', event);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleNameSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setChosenUsername(true);
-    socketInitializer();
+    socketRef.current.auth = { username };
+    socketRef.current.connect();
+  };
+
+  const handleMessageSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
   };
 
   const socketInitializer = async () => {
     await fetch("/api/socket");
-    socketRef.current = io();
+    socketRef.current = io({
+      autoConnect: false
+    });
+
+    socketRef.current.on("users", (msg: any) => {
+      setUsers(msg);
+    });
   };
 
   const chooseColor = (color: string) => {
@@ -94,9 +118,16 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
   const findxy = (res: string, e: MouseEvent) => {
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
-    
+
     switch (res) {
       case "down":
+        if (countdownRef.current?.isStarted() == true) {
+          countdownRef.current?.stop();
+          console.log(countdownRef.current.isCompleted());
+        } else {
+          countdownRef.current?.start();
+        }
+
         prevX.current = currX.current;
         prevY.current = currY.current;
         currX.current = e.clientX - canvas.offsetLeft;
@@ -141,15 +172,41 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
             <div className={styles.game}>
               <div className={styles.usersList}>
                 <ul>
-                  <li>hola</li>
-                  <li>hola</li>
-                  <li>hola</li>
-                  <li>hola</li>
-                  <li>hola</li>
-                  <li>hola</li>
+                  {
+                    users.map((user) => {
+                      return (
+                        <li key={user}>
+                          {user}
+                        </li>
+                      )
+                    })}
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
                 </ul>
               </div>
               <div className={styles.drawing}>
+                <Countdown ref={countdownRef} date={Date.now() + 120000} autoStart={false} renderer={props => <span>{props.minutes}:{props.seconds}</span>} />
                 <Text aria-label='Choose color'>Width: {width}</Text>
                 <span style={{ width: "20px", height: "20px", float: "left", background: "green" }} id="green" onClick={() => chooseColor("green")}></span>
                 <span style={{ width: "20px", height: "20px", float: "left", background: "blue" }} id="blue" onClick={() => chooseColor("blue")}></span>
@@ -164,21 +221,44 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
                 <Button aria-label='-' id="clr" onClick={() => setWidth(width - 1)}>-</Button>
                 <canvas ref={canvasRef} id="can" width="836" height="627" style={{ border: "2px solid", backgroundColor: "white" }}></canvas>
               </div>
-              <div>
-                <ul>
-                  <li>hola</li>
-                  <li>hola</li>
-                  <li>hola</li>
-                  <li>hola</li>
-                  <li>hola</li>
-                  <li>hola</li>
-                </ul>
+              <div className={styles.chat}>
+                <div style={{ overflowY: "auto", height: "95%" }}>
+                  <ul style={{ margin: "0", padding: "20px" }}>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                    <li>hola</li>
+                  </ul>
+                  <div ref={bottomRef} />
+                </div>
+                <form onSubmit={handleMessageSubmit}>
+                  <Input style={{ width: "inherit" }} autoComplete="off" />
+                </form>
               </div>
             </div>
           )
           :
           (
-            <form onSubmit={handleSubmit} className={styles.userForm}>
+            <form onSubmit={handleNameSubmit} className={styles.userForm}>
               <Input aria-label='Name' type={"text"} onChange={(event: React.ChangeEvent<FormElement>) => setUsername(event.target.value)} placeholder={"Name"}></Input>
             </form>
           )
