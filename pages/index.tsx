@@ -8,6 +8,7 @@ import styles from '../styles/Home.module.css'
 import fs from "fs-extra"
 import { Socket } from 'socket.io';
 import Countdown from 'react-countdown';
+import { Message, User } from "../types";
 
 export const getStaticProps: GetStaticProps = async (context) => {
   const content = await fs.readFile("./words/English.json", "utf-8");
@@ -23,9 +24,10 @@ export const getStaticProps: GetStaticProps = async (context) => {
 const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps>) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [username, setUsername] = useState("");
+  const [message, setMessage] = useState("");
   const [chosenUsername, setChosenUsername] = useState(false);
   const [users, setUsers] = useState([]);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<any>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const socketRef = useRef<any>(null);
   const countdownRef = useRef<Countdown>(null);
@@ -62,6 +64,7 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
       canvas.removeEventListener("mouseup", up);
       canvas.removeEventListener("mouseout", out);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chosenUsername, width]);
 
   const move = (event: MouseEvent) => {
@@ -85,10 +88,14 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
     setChosenUsername(true);
     socketRef.current.auth = { username };
     socketRef.current.connect();
+    socketRef.current.emit("get_messages");
   };
 
   const handleMessageSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    socketRef.current.emit("send_message", message);
+    setMessages((current: any) => [...current, message]);
+    setMessage("");
   };
 
   const socketInitializer = async () => {
@@ -97,8 +104,17 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
       autoConnect: false
     });
 
-    socketRef.current.on("users", (msg: any) => {
-      setUsers(msg);
+    socketRef.current.on("users", (data: any) => {
+      setUsers(data);
+    });
+
+    socketRef.current.on("receive_messages", (data: any) => {
+      console.log(data);
+      setMessages(data);
+    });
+
+    socketRef.current.on("receive_message", (data: any) => {
+      setMessages((current: any) => [...current, data]);
     });
   };
 
@@ -123,7 +139,6 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
       case "down":
         if (countdownRef.current?.isStarted() == true) {
           countdownRef.current?.stop();
-          console.log(countdownRef.current.isCompleted());
         } else {
           countdownRef.current?.start();
         }
@@ -173,36 +188,13 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
               <div className={styles.usersList}>
                 <ul>
                   {
-                    users.map((user) => {
+                    users.map((user, index) => {
                       return (
-                        <li key={user}>
+                        <li key={index}>
                           {user}
                         </li>
                       )
                     })}
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
                 </ul>
               </div>
               <div className={styles.drawing}>
@@ -224,34 +216,19 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
               <div className={styles.chat}>
                 <div style={{ overflowY: "auto", height: "95%" }}>
                   <ul style={{ margin: "0", padding: "20px" }}>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
-                    <li>hola</li>
+                    {
+                      messages.map((message: any, index: number) => {
+                        return (
+                          <li key={index}>
+                            {message}
+                          </li>
+                        )
+                      })}
                   </ul>
                   <div ref={bottomRef} />
                 </div>
                 <form onSubmit={handleMessageSubmit}>
-                  <Input style={{ width: "inherit" }} autoComplete="off" />
+                  <Input aria-label='Message' style={{ width: "inherit" }} autoComplete="off" value={message} onChange={(event: React.ChangeEvent<FormElement>) => setMessage(event.target.value)} placeholder={"Message"} />
                 </form>
               </div>
             </div>
@@ -259,7 +236,7 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
           :
           (
             <form onSubmit={handleNameSubmit} className={styles.userForm}>
-              <Input aria-label='Name' type={"text"} onChange={(event: React.ChangeEvent<FormElement>) => setUsername(event.target.value)} placeholder={"Name"}></Input>
+              <Input aria-label='Name' type={"text"} value={username} onChange={(event: React.ChangeEvent<FormElement>) => setUsername(event.target.value)} placeholder={"Name"}></Input>
             </form>
           )
         }

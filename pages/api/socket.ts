@@ -1,7 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { Server } from 'socket.io'
+import { Message, User } from "../../types";
 
-let names:string[] = [];
+const names:string[] = [];
+const messages:string[] = [];
 let word: string;
 
 export default function handler(
@@ -22,23 +24,28 @@ export default function handler(
     });
 
     io.on("connection", (socket: any) => {
-      console.log("connect");
       if(socket.username == undefined)
         return;
       
       names.push(socket.username);
-      console.log(names);
       io.sockets.emit("users", names);
       
-      socket.on('input-change', (msg: any) => {
-        socket.broadcast.emit('update-input', msg)
+      socket.on('input-change', (data: any) => {
+        socket.broadcast.emit('update-input', data)
       });
 
-      socket.on('new_word', (msg: any) => {
-        console.log("hola222");
+      socket.on('new_word', (data: any) => {
+
       });
 
-      
+      socket.on("get_messages", (data: any) => {
+        socket.emit("receive_messages", messages);
+      });
+
+      socket.on("send_message", (data: any) => {
+        socket.broadcast.emit("receive_message", data);
+        messages.push(data);
+      });
 
       socket.on("disconnect", () => {
         let index = names.indexOf(socket.username);
