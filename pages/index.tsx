@@ -6,9 +6,9 @@ import { MutableRefObject, useEffect, useRef, useState } from 'react'
 import io from "socket.io-client";
 import styles from '../styles/Home.module.css'
 import fs from "fs-extra"
-import { Socket } from 'socket.io';
 import Countdown from 'react-countdown';
 import { Message, User } from "../types";
+const baseURL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:4000";
 
 export const getStaticProps: GetStaticProps = async (context) => {
   const content = await fs.readFile("./words/English.json", "utf-8");
@@ -41,6 +41,7 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
 
   useEffect(() => {
     socketInitializer();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -57,12 +58,14 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
     canvas.addEventListener("mousedown", down);
     canvas.addEventListener("mouseup", up);
     canvas.addEventListener("mouseout", out);
+    canvas.addEventListener("wheel", wheel);
 
     return () => {
       canvas.removeEventListener("mousemove", move);
       canvas.removeEventListener("mousedown", down);
       canvas.removeEventListener("mouseup", up);
       canvas.removeEventListener("mouseout", out);
+      canvas.removeEventListener("wheel", wheel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chosenUsername, width]);
@@ -83,6 +86,15 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
     findxy('out', event);
   };
 
+  const wheel = (event: WheelEvent) => {
+    if (event.deltaY > 0 && width >= 2) {
+      setWidth(width - 1);
+    }
+    else if (event.deltaY < 0 && width <= 9) {
+      setWidth(width + 1);
+    }
+  };
+
   const handleNameSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setChosenUsername(true);
@@ -99,9 +111,9 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
   };
 
   const socketInitializer = async () => {
-    await fetch("/api/socket");
-    socketRef.current = io({
-      autoConnect: false
+    socketRef.current = io(baseURL, {
+      autoConnect: false,
+      withCredentials: true
     });
 
     socketRef.current.on("users", (data: any) => {
@@ -209,8 +221,6 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
                 <br></br>
                 <Button aria-label='Eraser' style={{ float: "left" }} id="white" onClick={() => chooseColor("white")}>Eraser</Button>
                 <Button aria-label='Clear' style={{ float: "left" }} id="clr" onClick={() => erase()}>Clear</Button>
-                <Button aria-label='+' style={{ float: "left" }} id="clr" onClick={() => setWidth(width + 1)}>+</Button>
-                <Button aria-label='-' id="clr" onClick={() => setWidth(width - 1)}>-</Button>
                 <canvas ref={canvasRef} id="can" width="836" height="627" style={{ border: "2px solid", backgroundColor: "white" }}></canvas>
               </div>
               <div className={styles.chat}>
