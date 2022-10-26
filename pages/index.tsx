@@ -97,10 +97,10 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
 
   const handleNameSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setChosenUsername(true);
     socketRef.current.auth = { username };
     socketRef.current.connect();
     socketRef.current.emit("get_messages");
+    setChosenUsername(true);
   };
 
   const handleMessageSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -127,6 +127,10 @@ const Home: NextPage = ({ words }: InferGetStaticPropsType<typeof getStaticProps
 
     socketRef.current.on("receive_message", (data: any) => {
       setMessages((current: any) => [...current, data]);
+    });
+
+    socketRef.current.on("receive_color", (data: any) => {
+
     });
   };
 
